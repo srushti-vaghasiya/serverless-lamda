@@ -1,0 +1,91 @@
+service: user-service
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  apiGateway:
+    binaryMediaTypes:
+      - "*/*"
+  stage: ${opt:stage, 'api'}
+  environment:
+    STAGE: ${self:provider.stage}
+    DB_HOST: ${env:DB_HOST, 'localhost'}
+    DB_PORT: ${env:DB_PORT, '5432'}
+    DB_NAME: ${env:DB_NAME, 'e-commerce-user'}
+    DB_USER: ${env:DB_USER, 'root'}
+    DB_PASSWORD: ${env:DB_PASSWORD, 'root'}
+    JWT_SECRET: ${env:JWT_SECRET, 'qwertyuiop'}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - rds:*
+      Resource: "*"
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+  - serverless-static
+
+functions:
+  jwtAuthorizer:
+    handler: utils/auth.verifyToken
+    description: JWT Token Authorizer for Product Service
+
+  register:
+    handler: handlers/auth.register
+    events:
+      - http:
+          path: /register
+          method: post
+          cors: true
+
+  login:
+    handler: handlers/auth.login
+    events:
+      - http:
+          path: /login
+          method: post
+          cors: true
+
+  getProfile:
+    handler: handlers/user.getProfile
+    events:
+      - http:
+          path: /profile
+          method: get
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  updateProfile:
+    handler: handlers/user.updateProfile
+    events:
+      - http:
+          path: /profile
+          method: put
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+custom:
+  static:
+    path: ./uploads # select the folder you want to serve
+    port: 5000
+  serverless-offline:
+    reloadHandler: true
+    useChildProcesses: true
+    useSeparateProcesses: true
+  # serverless-offline:
+  #   httpPort: 3000
+  #   staticDir: uploads
+  #   staticPath: /uploads
+  # serveStatic:
+  #   - location: uploads
+  #     path: /uploads
+  #     # Ensure trailing slash is handled properly
+  #     index: false
