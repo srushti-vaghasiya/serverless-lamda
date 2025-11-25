@@ -1,0 +1,110 @@
+service: product-service
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'api'}
+  environment:
+    STAGE: ${self:provider.stage}
+    DB_HOST: ${env:DB_HOST, 'localhost'}
+    DB_PORT: ${env:DB_PORT, '5432'}
+    DB_NAME: ${env:DB_NAME, 'e-commerce-product'}
+    DB_USER: ${env:DB_USER, 'root'}
+    DB_PASSWORD: ${env:DB_PASSWORD, 'root'}
+    JWT_SECRET: ${env:JWT_SECRET, 'qwertyuiop'}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - rds:*
+      Resource: "*"
+
+plugins:
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+functions:
+  jwtAuthorizer:
+    handler: utils/auth.verifyToken
+    description: JWT Token Authorizer for Product Service
+
+  getAllProducts:
+    handler: handlers/product.getAllProducts
+    events:
+      - http:
+          path: /products
+          method: get
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  getProductById:
+    handler: handlers/product.getProductById
+    events:
+      - http:
+          path: /products/{id}
+          method: get
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  createProduct:
+    handler: handlers/product.createProduct
+    events:
+      - http:
+          path: /products
+          method: post
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  updateProduct:
+    handler: handlers/product.updateProduct
+    events:
+      - http:
+          path: /products/{id}
+          method: put
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  deleteProduct:
+    handler: handlers/product.deleteProduct
+    events:
+      - http:
+          path: /products/{id}
+          method: delete
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+  getCategories:
+    handler: handlers/product.getCategories
+    events:
+      - http:
+          path: /categories
+          method: get
+          cors: true
+          authorizer:
+            name: jwtAuthorizer
+            type: request
+            identitySource: method.request.header.Authorization
+
+custom:
+  serverless-offline:
+    httpPort: 4000
+    lambdaPort: 4002
+    host: localhost
+    reloadHandler: true
+    useChildProcesses: true
+    useSeparateProcesses: true
