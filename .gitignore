@@ -1,0 +1,5 @@
+node_modules
+temp_auto_push.bat
+.serverless
+.gitignore
+temp_interactive_push.bat
